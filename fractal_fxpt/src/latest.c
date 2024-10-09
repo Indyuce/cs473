@@ -8,10 +8,35 @@ uint32_t FRAC_MASK = 0x7fffffff;
 
 fxpt_8_24 float_to_fxpt(float x);
 
+/// @param x Number in Q4.28
+/// @return Absolute value of parameter
 fxpt_8_24 abs(fxpt_8_24 x);
-fxpt_8_24 add(fxpt_8_24 x1, fxpt_8_24 x2);
+
+/// @param a Left hand side in Q4.28
+/// @param b Right hand side in Q4.28
+/// @return Sum of left and right hand side
+fxpt_8_24 add(fxpt_8_24 a, fxpt_8_24 b);
+
+/// @param a Left hand side in Q4.28
+/// @param b Right hand side in Q4.28
+/// @return Difference of left to right hand side (a - b)
+fxpt_8_24 sub(fxpt_8_24 a, fxpt_8_24 b);
+
+/// @param b Left hand side in Q4.28
+/// @param a Right hand side in Q4.28
+/// @return Product of left and right hand side
 fxpt_8_24 mul(fxpt_8_24 a, fxpt_8_24 b);
-fxpt_8_24 shl1(fxpt_8_24 a);
+
+/// @param a Left hand side in Q4.28
+/// @param b Right hand side in Q4.28
+/// @return If a < b
+uint32_t lt(fxpt_8_24 a, fxpt_8_24 b);
+
+/// @brief MSG will overflow in sign bit when out of range.
+/// @param a Number in Q4.28
+/// @param shift Number of times to shift to the left
+/// @return `a` multiplied by 2^`shift`
+fxpt_8_24 mul2n(fxpt_8_24 x, uint32_t shift);
 
 #define print_bits(x)                                            \
   do {                                                           \
@@ -33,8 +58,8 @@ int main() {
     print_bits(z);
     */
     
-    fxpt_8_24 x = float_to_fxpt(3.5);
-    fxpt_8_24 y = float_to_fxpt(3.5);
+    fxpt_8_24 x = float_to_fxpt(2);
+    fxpt_8_24 y = float_to_fxpt(3);
     //fxpt_8_24 z = x + y;
     fxpt_8_24 w = mul(x, y);
     print_bits(x);
@@ -43,6 +68,30 @@ int main() {
     print_bits(w);
 }
 
+uint16_t calc_mandelbrot_point_soft(fxpt_8_24 cx, fxpt_8_24 cy, uint16_t n_max) {
+  fxpt_8_24 x = cx;
+  fxpt_8_24 y = cy;
+  uint16_t n = 0;
+  fxpt_8_24 xx, yy, two_xy;
+
+  fxpt_8_24 threshold = float_to_fxpt(4);
+
+  do {
+    xx = mul(x, x);
+    yy = mul(y, y);
+    two_xy = mul2n(mul(x, y), 1); // Small optimization: . * 2 <=> . << 1
+
+    x = add(sub(xx, yy), cx);
+    y = add(two_xy, cy);
+    ++n;
+  } while (lt(add(xx, yy), threshold) && (n < n_max));
+
+  return n;
+}
+
+uint32_t lt(fxpt_8_24 a, fxpt_8_24 b) {
+    return a < b;
+}
 
 fxpt_8_24 abs(fxpt_8_24 x) {
     if (x < 0) {
@@ -76,8 +125,26 @@ fxpt_8_24 mul(fxpt_8_24 a, fxpt_8_24 b) {
     }
 }
 
-fxpt_8_24 add(fxpt_8_24 x1, fxpt_8_24 x2) {
-    return x1 + x2;
+fxpt_8_24 mul2n(fxpt_8_24 a, uint32_t shift) {
+    fxpt_8_24 a_abs = abs(a);                  // Take absolute value
+    uint32_t shifted = * (uint32_t*) &a_abs;   // Unsign integer
+    shifted <<= shift;                         // Shift by n
+    fxpt_8_24 result = * (uint32_t*) &shifted; // Sign integer again
+
+    // Fix sign
+    if (a < 0) {
+        return -result;
+    } else {
+        return result;
+    }
+}
+
+fxpt_8_24 add(fxpt_8_24 a, fxpt_8_24 b) {
+    return a + b;
+}
+
+fxpt_8_24 sub(fxpt_8_24 a, fxpt_8_24 b) {
+    return a - b;
 }
 
 fxpt_8_24 float_to_fxpt(float x) {
