@@ -20,6 +20,10 @@ soft_float32 set_sign(soft_float32 f, uint32_t sign);
 soft_float32 set_exponent(soft_float32 f, uint32_t exponent);
 soft_float32 set_magnitude(soft_float32 f, uint32_t magnitude);
 soft_float32 soft_float_mul(soft_float32 a, soft_float32 b);
+soft_float32 soft_float_add(soft_float32 a, soft_float32 b);
+soft_float32 float_to_soft_float32(float f);
+soft_float32 soft_float_change_sign(soft_float32 f);
+int soft_float_less_than(soft_float32 a, soft_float32 b);
 
 
 //! \brief Pointer to fractal point calculation function

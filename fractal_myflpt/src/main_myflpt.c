@@ -37,8 +37,10 @@ int main() {
    vga[3] = swap_u32((unsigned int)&frameBuffer[0]);
    /* Clear screen */
    for (i = 0 ; i < SCREEN_WIDTH*SCREEN_HEIGHT ; i++) frameBuffer[i]=0;
-
-   draw_fractal(frameBuffer,SCREEN_WIDTH,SCREEN_HEIGHT,&calc_mandelbrot_point_soft, &iter_to_colour,CX_0,CY_0,delta,N_MAX);
+   soft_float32 cx0 = float_to_soft_float32(CX_0);
+   soft_float32 cy0 = float_to_soft_float32(CY_0);
+   soft_float32 softdelta = float_to_soft_float32(delta);
+   draw_fractal(frameBuffer,SCREEN_WIDTH,SCREEN_HEIGHT,&calc_mandelbrot_point_soft, &iter_to_colour,cx0,cy0,softdelta,N_MAX);
 #ifdef OR1300   
    dcache_flush();
 #endif
