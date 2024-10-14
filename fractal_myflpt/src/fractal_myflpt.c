@@ -1,38 +1,39 @@
 #include "fractal_myflpt.h"
 #include <swap.h>
 #include <string.h>
+#include <stdio.h>
 
 /* SOFT LIB FUNCTIONS IMPLEMENTATION */
 
 // Accessors and set functions to simplify interactions with soft_float32 type
 
 // Extract the sign (bit 31)
-uint32_t get_sign(soft_float32 f) {
+inline uint32_t get_sign(soft_float32 f) {
     return (f >> 31) & 0x1;
 }
 
 // Extract the exponent (bits 7-0)
-uint32_t get_exponent(soft_float32 f) {
+inline uint32_t get_exponent(soft_float32 f) {
     return f & 0xFF;
 }
 
 // Extract the magnitude (bits 30-8)
-uint32_t get_magnitude(soft_float32 f) {
+inline uint32_t get_magnitude(soft_float32 f) {
     return (f >> 8) & 0x7FFFFF;
 }
 
 // Set the sign (bit 31) : reset 31st bit of f and or it with sign shifted by 31
-soft_float32 set_sign(soft_float32 f, uint32_t sign) {
+inline soft_float32 set_sign(soft_float32 f, uint32_t sign) {
     return (f & ~(1U << 31)) | ((sign & 0x1) << 31);
 }
 
 // Set the exponent (bits 7-0) : reset exponent bits and or it with exponent
-soft_float32 set_exponent(soft_float32 f, uint32_t exponent) {
+inline soft_float32 set_exponent(soft_float32 f, uint32_t exponent) {
     return (f & ~0xFF) | ((exponent & 0xFF) );
 }
 
 // Set the magnitude (bits 30-8) : reset magnitude bits and or it with magnitude shifted by 8
-soft_float32 set_magnitude(soft_float32 f, uint32_t magnitude) {
+inline soft_float32 set_magnitude(soft_float32 f, uint32_t magnitude) {
     return (f & ~(0x7FFFFF << 8)) | ((magnitude & 0x7FFFFF) << 8);
 }
 
@@ -100,8 +101,8 @@ soft_float32 soft_float_mul(soft_float32 a, soft_float32 b) {
 soft_float32 soft_float_add(soft_float32 a, soft_float32 b) {
     uint32_t sign_a = get_sign(a);
     uint32_t sign_b = get_sign(b);
-    uint32_t exponent_a = get_exponent(a);
-    uint32_t exponent_b = get_exponent(b);
+    int32_t exponent_a = get_exponent(a);
+    int32_t exponent_b = get_exponent(b);
     uint32_t magnitude_a = get_magnitude(a);
     uint32_t magnitude_b = get_magnitude(b);
 
@@ -157,6 +158,14 @@ soft_float32 soft_float_add(soft_float32 a, soft_float32 b) {
     if (magnitude_add & (1 << 24)) {
         magnitude_add >>= 1;
         exponent_add++;
+    } else {
+        // Here we almost have the final result but it can still have 
+        // 0s in the magnitude that we want to get rid of by normalizing 
+        // We check each time is there is a zero at the end
+        while((magnitude_add & 0x800000) == 0){
+            magnitude_add <<= 1;
+            exponent_add--;
+        }        
     }
 
     // If the exponent has bits over the 8 bits : overflow
@@ -193,7 +202,7 @@ soft_float32 float_to_soft_float32(float f) {
 
     // Here we only need to change the exponent so that it is 
     // 250 excess instead of 127 excess
-    uint32_t soft_float32_exponent = float_exponent - 127 + 250;
+    int32_t soft_float32_exponent = float_exponent - 127 + 250;
 
     // Special cases : +0 -0 +inf -inf
 
@@ -211,6 +220,49 @@ soft_float32 float_to_soft_float32(float f) {
         // we kept IEEE754 standards
         soft_float32 result = (soft_float32) (sign << 31) | (float_mantissa << 8) | (soft_float32_exponent);
         return result;
+    }
+}
+
+// Soft_float to float: our type is really close to float (ieee754)
+// Thus let's extract each part and solely adapt exponent 
+float soft_float32_to_float(soft_float32 f) {
+    uint32_t float_start;
+
+    // Copy bits from f to float_start
+    memcpy(&float_start, &f, sizeof(uint32_t));
+
+    // Extract each part of the soft_float
+    uint32_t sign = get_sign(f);
+    // printf("Sign : %d \n ", sign);
+    uint32_t exponent = get_exponent(f);
+    // printf("Exponent : %x \n", exponent);
+    uint32_t magnitude = get_magnitude(f);
+    // printf("Magnitude : %x \n", magnitude);
+
+    // Here we only need to change the exponent so that it is 
+    // 127 excess instead of 250 excess
+    int32_t float_exponent = exponent - 250 + 127;
+    // printf("Float Exponent : %x \n", float_exponent);
+    // Special cases : +0 -0 +inf -inf
+
+    // +inf -inf
+    if (exponent == 0xFF) {
+        return (sign << 31) | ((exponent & 0xFF) <<23) | (magnitude & 0x7FFFFF);
+    
+    // -0 +0
+    } else if (exponent == 0 && magnitude == 0) { 
+        return (sign << 31); // +0 or -0 depending on sign
+    }
+    // OK
+    else {
+        // Just change the place of exponent and magnitude since 
+        // we kept IEEE754 standards
+        uint32_t result = ((sign << 31) | ((float_exponent & 0xFF) << 23) | (magnitude & 0x7FFFFF));
+        //print_binary(result);
+        // CANT CAST UINT32T TO FLOAT WITHOUT IMPLICIT CONVERSION 
+        float fl;
+        memcpy(&fl, &result, sizeof(float));
+        return fl;
     }
 }
 
@@ -264,7 +316,8 @@ uint16_t calc_mandelbrot_point_soft(soft_float32 cx, soft_float32 cy, uint16_t n
   uint16_t n = 0;
   soft_float32 two = 0x000000fb; // 2 in our format is 0x000000fb
   soft_float32 four = 0x000000fc; // 4 in our format is 0x000000fc
-  soft_float32 xx, yy, xy, two_xy, xxyy, minusyy;
+  // We could optimise multiplication by 2 by using shift and exponent modification
+  soft_float32 xx, yy, xy, two_xy, xxyy, minusyy, xxplusyy;
   do {
     xx = soft_float_mul(x,x);
     yy = soft_float_mul(y,y);
@@ -275,8 +328,11 @@ uint16_t calc_mandelbrot_point_soft(soft_float32 cx, soft_float32 cy, uint16_t n
     x = soft_float_add(xxyy, cx);
     y = soft_float_add(two_xy, cy);
     ++n;
+    //printf("n value : %d\n", n);
+    xxplusyy = soft_float_add(xx,yy);
+    //printf("xxplusyy : %x \n", xxplusyy);
     
-  } while ((soft_float_less_than(soft_float_add(xx,yy), four)) && (n < n_max));
+  } while ((soft_float_less_than(xxplusyy, four)) && (n < n_max));
   return n;
 }
 

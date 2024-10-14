@@ -7,6 +7,23 @@ typedef uint32_t soft_float32;
 
 // Accessors and set functions to simplify interactions with soft_float32 type
 
+// float are automatically converted to double in C WTF
+union FloatBits {
+    float f;
+    uint32_t i;
+};
+
+void printFloatBits(float f) {
+    union FloatBits fb;
+    fb.f = f;
+    printf("f : ");
+    for (int i = 31; i >= 0; i--) {
+        printf("%d", (fb.i >> i) & 1);
+        if (i == 31 || i == 23) printf(" "); // Space after sign and exponent
+    }
+    printf("\n");
+}
+
 // Extract the sign (bit 31)
 uint32_t get_sign(soft_float32 f) {
     return (f >> 31) & 0x1;
@@ -48,15 +65,17 @@ soft_float32 float_to_soft_float32(float f) {
     memcpy(&float_start, &f, sizeof(float));
 
     // Extract each part of the float
+    // printFloatBits(float_start);
     uint32_t sign = (float_start >> 31) & 0x1;
     uint32_t float_exponent = (float_start >> 23) & 0xFF;
+    // printf("Float exponent before conv : %x \n", float_exponent);
     uint32_t float_mantissa = float_start & 0x7FFFFF;
-    printf("Mantissa : %x\n", float_mantissa);
+    // printf("Mantissa : %x\n", float_mantissa);
 
     // Here we only need to change the exponent so that it is 
     // 250 excess instead of 127 excess
     uint32_t soft_float32_exponent = float_exponent - 127 + 250;
-
+    // printf("Soft float exponent : %x \n", soft_float32_exponent);
     // Special cases : +0 -0 +inf -inf
 
     // +inf -inf
@@ -148,8 +167,8 @@ soft_float32 soft_float_mul(soft_float32 a, soft_float32 b) {
 soft_float32 soft_float_add(soft_float32 a, soft_float32 b) {
     uint32_t sign_a = get_sign(a);
     uint32_t sign_b = get_sign(b);
-    uint32_t exponent_a = get_exponent(a);
-    uint32_t exponent_b = get_exponent(b);
+    int32_t exponent_a = get_exponent(a);
+    int32_t exponent_b = get_exponent(b);
     uint32_t magnitude_a = get_magnitude(a);
     uint32_t magnitude_b = get_magnitude(b);
 
@@ -205,6 +224,15 @@ soft_float32 soft_float_add(soft_float32 a, soft_float32 b) {
     if (magnitude_add & (1 << 24)) {
         magnitude_add >>= 1;
         exponent_add++;
+    } else {
+        // Here we almost have the final result but it can still have 
+        // 0s in the magnitude that we want to get rid of by normalizing 
+        // We check each time is there is a zero at the end
+        while((magnitude_add & 0x800000) == 0){
+            magnitude_add <<= 1;
+            exponent_add--;
+        }
+
     }
 
     // If the exponent has bits over the 8 bits : overflow
@@ -224,22 +252,7 @@ soft_float32 soft_float_add(soft_float32 a, soft_float32 b) {
     return result;
 }
 
-// float are automatically converted to double in C WTF
-union FloatBits {
-    float f;
-    uint32_t i;
-};
 
-void printFloatBits(float f) {
-    union FloatBits fb;
-    fb.f = f;
-    printf("f : ");
-    for (int i = 31; i >= 0; i--) {
-        printf("%d", (fb.i >> i) & 1);
-        if (i == 31 || i == 23) printf(" "); // Space after sign and exponent
-    }
-    printf("\n");
-}
 
 // Function to flip the MSB to change sign (avoid mul by -1)
 soft_float32 soft_float_change_sign(soft_float32 f) {
@@ -280,48 +293,145 @@ int soft_float_less_than(soft_float32 a, soft_float32 b) {
     return reverse ? (magnitude_a > magnitude_b) : (magnitude_a < magnitude_b);
 }
 
+void print_binary(uint32_t value) {
+    for (int i = 31; i >= 0; i--) {
+        printf("%d", (value >> i) & 1);
+    }
+    printf("\n");
+}
+
+// Soft_float to float: our type is really close to float (ieee754)
+// Thus let's extract each part and solely adapt exponent 
+float soft_float32_to_float(soft_float32 f) {
+    uint32_t float_start;
+
+    // Copy bits from f to float_start
+    memcpy(&float_start, &f, sizeof(uint32_t));
+
+    // Extract each part of the soft_float
+    uint32_t sign = get_sign(f);
+    // printf("Sign : %d \n ", sign);
+    uint32_t exponent = get_exponent(f);
+    // printf("Exponent : %x \n", exponent);
+    uint32_t magnitude = get_magnitude(f);
+    // printf("Magnitude : %x \n", magnitude);
+
+    // Here we only need to change the exponent so that it is 
+    // 127 excess instead of 250 excess
+    int32_t float_exponent = exponent - 250 + 127;
+    // printf("Float Exponent : %x \n", float_exponent);
+    // Special cases : +0 -0 +inf -inf
+
+    // +inf -inf
+    if (exponent == 0xFF) {
+        return (sign << 31) | ((exponent & 0xFF) <<23) | (magnitude & 0x7FFFFF);
+    
+    // -0 +0
+    } else if (exponent == 0 && magnitude == 0) { 
+        return (sign << 31); // +0 or -0 depending on sign
+    }
+    // OK
+    else {
+        // Just change the place of exponent and magnitude since 
+        // we kept IEEE754 standards
+        uint32_t result = ((sign << 31) | ((float_exponent & 0xFF) << 23) | (magnitude & 0x7FFFFF));
+        //print_binary(result);
+        // CANT CAST UINT32T TO FLOAT WITHOUT IMPLICIT CONVERSION 
+        float fl;
+        memcpy(&fl, &result, sizeof(float));
+        return fl;
+    }
+}
+
 int main(){
-    soft_float32 f1 = 0x200000FB; // 2.5 in the chosen format
-    soft_float32 f2 = 0x700000FC; // 7.5 in the chosen format
+    // soft_float32 f1 = 0x200000FB; // 2.5 in the chosen format
+    // soft_float32 f2 = 0x700000FC; // 7.5 in the chosen format
 
-    // result for f1 * f2 should be 18,75 d = 0x160000FE (hex)
-    // result for f1 + f2 should be 10 d = 0x20000FD (hex)
+    // // result for f1 * f2 should be 18,75 d = 0x160000FE (hex)
+    // // result for f1 + f2 should be 10 d = 0x20000FD (hex)
 
-    printf("Sign f1: %x\n", get_sign(f1));
-    printf("Sign f2: %x\n", get_sign(f2));
-    printf("Exponent f1: %x\n", get_exponent(f1));
-    printf("Exponent f2: %x\n", get_exponent(f2));
-    printf("Magnitude f1: %x\n", get_magnitude(f1));
-    printf("Magnitude f2: %x\n", get_magnitude(f2));
+    // printf("Sign f1: %x\n", get_sign(f1));
+    // printf("Sign f2: %x\n", get_sign(f2));
+    // printf("Exponent f1: %x\n", get_exponent(f1));
+    // printf("Exponent f2: %x\n", get_exponent(f2));
+    // printf("Magnitude f1: %x\n", get_magnitude(f1));
+    // printf("Magnitude f2: %x\n", get_magnitude(f2));
 
-    soft_float32 f3 = soft_float_mul(f1, f2);
-    printf("Sign f3: %x\n", get_sign(f3));
-    printf("Exponent f3: %x\n", get_exponent(f3));
-    printf("Magnitude f3: %x\n", get_magnitude(f3));
+    // soft_float32 f3 = soft_float_mul(f1, f2);
+    // printf("Sign f3: %x\n", get_sign(f3));
+    // printf("Exponent f3: %x\n", get_exponent(f3));
+    // printf("Magnitude f3: %x\n", get_magnitude(f3));
 
-    printf("f3 : %x\n", f3);
+    // printf("f3 : %x\n", f3);
 
-    soft_float32 f4 = soft_float_add(f1, f2);
-    printf("Sign f4: %x\n", get_sign(f4));
-    printf("Exponent f4: %x\n", get_exponent(f4));
-    printf("Magnitude f4: %x\n", get_magnitude(f4));
+    // soft_float32 f4 = soft_float_add(f1, f2);
+    // printf("Sign f4: %x\n", get_sign(f4));
+    // printf("Exponent f4: %x\n", get_exponent(f4));
+    // printf("Magnitude f4: %x\n", get_magnitude(f4));
 
-    printf("f4 : %x\n", f4);
+    // printf("f4 : %x\n", f4);
 
-    float f5 = 3.5f; // 0x40600000 in IEEE754
-    printFloatBits(f5);
+    // float f5 = 3.5f; // 0x40600000 in IEEE754
+    // printFloatBits(f5);
 
-    // The result in our representation should be 0x600000FB in the chosen format
-    soft_float32 f6 = float_to_soft_float32(f5);
-    printf("f6 : %x\n", f6);
+    // // The result in our representation should be 0x600000FB in the chosen format
+    // soft_float32 f6 = float_to_soft_float32(f5);
+    // printf("f6 : %x\n", f6);
 
-    float f7 = 2.0f; // 0x40000000 in IEEE754
-    printFloatBits(f7);
+    // float f7 = 2.0f; // 0x40000000 in IEEE754
+    // printFloatBits(f7);
 
-    // The result in our representation should be in the chosen format
-    soft_float32 f8 = float_to_soft_float32(f7);
-    //f8 = soft_float_change_sign(f8);
-    printf("f8 : %x\n", f8);
+    // // The result in our representation should be in the chosen format
+    // soft_float32 f8 = float_to_soft_float32(f7);
+    // //f8 = soft_float_change_sign(f8);
+    // printf("f8 : %x\n", f8);
 
-    printf("Is f8 inferior to f6 ? %d\n", soft_float_less_than(f8, f6));
+    // printf("Is f8 inferior to f6 ? %d\n", soft_float_less_than(f8, f6));
+
+    float f = -4.0f;
+    float f10 = 4.0f;
+    int i = 0;
+    int j = 0;
+    for(i = 0; i < 1000000; i++){
+        f += 1e-1f;
+        for(j=0; j < 1000000; j++){
+            f10 -= 1e-1f;
+            printf("f : %f\n", f);
+            printFloatBits(f);
+            printf("f10 : %f\n", f10);
+            printFloatBits(f10);
+            soft_float32 sf = float_to_soft_float32(f);
+            soft_float32 sf10 = float_to_soft_float32(f10);
+
+            soft_float32 addsf = soft_float_add(sf, sf10);
+            
+            if ((f + f10) != soft_float32_to_float(addsf)){
+                printf("Error in addition :\n");
+                printf("Addition float : \n");
+                printFloatBits(f+f10);
+                printf("Addition soft float : \n");
+                printf("Addsf soft : %x \n", addsf);
+                printFloatBits(soft_float32_to_float(addsf));
+                return 1;
+            }
+        }
+
+
+        // float sf = soft_float32_to_float(float_to_soft_float32(f));
+        // if (f != sf) {
+        //     printf("Error transcoding :");
+        //     printf("f = %f\n", f);
+        //     printFloatBits(f);
+        //     printf("softfloat = %x\n", float_to_soft_float32(f));
+        //     printf("sf = %f\n", sf);
+        //     printFloatBits(sf);
+        //     return 1;
+        // }
+        // printf(" --- float : %f\n", f);
+        // printf(" --- Soft float : %f \n", sf);
+    }
+    printf("Transcoding OK\n");
+
+    // Why does the number is already >= 4 ?
+
 }
