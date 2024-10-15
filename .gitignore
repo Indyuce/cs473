@@ -1,2 +1,6 @@
 *.vscode
-fractal_myflpt/build-release/*
+.vscode
+
+build-release
+
+crt0def.inc
