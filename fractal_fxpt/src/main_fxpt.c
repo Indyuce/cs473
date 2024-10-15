@@ -5,6 +5,16 @@
 #include <stddef.h>
 #include <stdio.h>
 
+// TODO remove
+#define print_bits(x)                                            \
+  do {                                                           \
+    unsigned long long a__ = (x);                                \
+    size_t bits__ = sizeof(x) * 8;                               \
+    printf(#x ": ");                                             \
+    while (bits__--) putchar(a__ &(1ULL << bits__) ? '1' : '0'); \
+    putchar('\n');                                               \
+  } while (0)
+
 // Constants describing the output device
 const int SCREEN_WIDTH = 512;   //!< screen width
 const int SCREEN_HEIGHT = 512;  //!< screen height
@@ -37,8 +47,12 @@ int main() {
    vga[3] = swap_u32((unsigned int)&frameBuffer[0]);
    /* Clear screen */
    for (i = 0 ; i < SCREEN_WIDTH*SCREEN_HEIGHT ; i++) frameBuffer[i]=0;
-
-   draw_fractal(frameBuffer,SCREEN_WIDTH,SCREEN_HEIGHT,&calc_mandelbrot_point_soft, &iter_to_colour,CX_0,CY_0,delta,N_MAX);
+   
+   draw_fractal(frameBuffer,SCREEN_WIDTH,SCREEN_HEIGHT,&calc_mandelbrot_point_soft, &iter_to_colour,
+      float_to_fxpt(CX_0),
+      float_to_fxpt(CY_0),
+      float_to_fxpt(delta),
+      N_MAX);
 #ifdef OR1300   
    dcache_flush();
 #endif
