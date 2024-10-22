@@ -5,38 +5,6 @@
 
 /* SOFT LIB FUNCTIONS IMPLEMENTATION */
 
-// Accessors and set functions to simplify interactions with soft_float32 type
-
-// Extract the sign (bit 31)
-inline uint32_t get_sign(soft_float32 f) {
-    return (f >> 31) & 0x1;
-}
-
-// Extract the exponent (bits 7-0)
-inline uint32_t get_exponent(soft_float32 f) {
-    return f & 0xFF;
-}
-
-// Extract the magnitude (bits 30-8)
-inline uint32_t get_magnitude(soft_float32 f) {
-    return (f >> 8) & 0x7FFFFF;
-}
-
-// Set the sign (bit 31) : reset 31st bit of f and or it with sign shifted by 31
-inline soft_float32 set_sign(soft_float32 f, uint32_t sign) {
-    return (f & ~(1U << 31)) | ((sign & 0x1) << 31);
-}
-
-// Set the exponent (bits 7-0) : reset exponent bits and or it with exponent
-inline soft_float32 set_exponent(soft_float32 f, uint32_t exponent) {
-    return (f & ~0xFF) | ((exponent & 0xFF) );
-}
-
-// Set the magnitude (bits 30-8) : reset magnitude bits and or it with magnitude shifted by 8
-inline soft_float32 set_magnitude(soft_float32 f, uint32_t magnitude) {
-    return (f & ~(0x7FFFFF << 8)) | ((magnitude & 0x7FFFFF) << 8);
-}
-
 // Function to multiply two soft-floats
 soft_float32 soft_float_mul(soft_float32 a, soft_float32 b) {
     uint32_t exponent_a = get_exponent(a);
@@ -94,6 +62,32 @@ soft_float32 soft_float_mul(soft_float32 a, soft_float32 b) {
     result = set_exponent(result, exponent_product);
     result = set_magnitude(result, (uint32_t) magnitude_product); // Store only 23 bits
 
+    return result;
+}
+
+// Function to multiply by two
+soft_float32 soft_float_mul_two(soft_float32 f) {
+    uint32_t exponent_f = get_exponent(f);
+
+    exponent_f++;
+
+    // If the exponent has bits over the 8 bits : overflow
+    // In the IEEE754 infinity is represented by 255 in exponent 
+    // and 0 in mantissa here we will return 0 in magnitude
+    // and 255 in exponent which gives : 0x[01]00000FF (depending on sign)
+    if (exponent_f >= 255) {
+        return set_sign(0x000000FF, get_sign(f));
+    }
+
+    // If the exponent is negative and this <= 0 when bias applied, result is 0
+    // Should never happen
+    if (exponent_f <= 0) {
+        return set_sign(0, get_sign(f));
+    }
+
+    // Encode the result into a uint32_t soft-float
+    soft_float32 result = f;
+    result = set_exponent(result, exponent_f);
     return result;
 }
 
@@ -266,10 +260,7 @@ float soft_float32_to_float(soft_float32 f) {
     }
 }
 
-// Function to flip the MSB to change sign (avoid mul by -1)
-soft_float32 soft_float_change_sign(soft_float32 f) {
-    return f ^ 0x80000000;
-}
+
 
 // Function to compare two soft_float
 int soft_float_less_than(soft_float32 a, soft_float32 b) {
@@ -314,7 +305,7 @@ uint16_t calc_mandelbrot_point_soft(soft_float32 cx, soft_float32 cy, uint16_t n
   soft_float32 x = cx;
   soft_float32 y = cy;
   uint16_t n = 0;
-  soft_float32 two = 0x000000fb; // 2 in our format is 0x000000fb
+  //soft_float32 two = 0x000000fb; // 2 in our format is 0x000000fb
   soft_float32 four = 0x000000fc; // 4 in our format is 0x000000fc
   // We could optimise multiplication by 2 by using shift and exponent modification
   soft_float32 xx, yy, xy, two_xy, xxyy, minusyy, xxplusyy;
@@ -322,7 +313,7 @@ uint16_t calc_mandelbrot_point_soft(soft_float32 cx, soft_float32 cy, uint16_t n
     xx = soft_float_mul(x,x);
     yy = soft_float_mul(y,y);
     xy = soft_float_mul(x,y);
-    two_xy = soft_float_mul(two, xy);
+    two_xy = soft_float_mul_two(xy);
     minusyy = soft_float_change_sign(yy);
     xxyy = soft_float_add(xx, minusyy);
     x = soft_float_add(xxyy, cx);

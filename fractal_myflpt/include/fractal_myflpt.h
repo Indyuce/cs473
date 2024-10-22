@@ -13,17 +13,48 @@ typedef uint32_t soft_float32;
 
 /* SOFT LIB FUNCTIONS DECLARATION */
 
-uint32_t get_sign(soft_float32 f);
-uint32_t get_exponent(soft_float32 f);
-uint32_t get_magnitude(soft_float32 f);
-soft_float32 set_sign(soft_float32 f, uint32_t sign);
-soft_float32 set_exponent(soft_float32 f, uint32_t exponent);
-soft_float32 set_magnitude(soft_float32 f, uint32_t magnitude);
+// Accessors and set functions to simplify interactions with soft_float32 type
+
+// Extract the sign (bit 31)
+static inline uint32_t get_sign(soft_float32 f) {
+    return (f >> 31) & 0x1;
+}
+
+// Extract the exponent (bits 7-0)
+static inline uint32_t get_exponent(soft_float32 f) {
+    return f & 0xFF;
+}
+
+// Extract the magnitude (bits 30-8)
+static inline uint32_t get_magnitude(soft_float32 f) {
+    return (f >> 8) & 0x7FFFFF;
+}
+
+// Set the sign (bit 31) : reset 31st bit of f and or it with sign shifted by 31
+static inline soft_float32 set_sign(soft_float32 f, uint32_t sign) {
+    return (f & ~(1U << 31)) | ((sign & 0x1) << 31);
+}
+
+// Set the exponent (bits 7-0) : reset exponent bits and or it with exponent
+static inline soft_float32 set_exponent(soft_float32 f, uint32_t exponent) {
+    return (f & ~0xFF) | ((exponent & 0xFF) );
+}
+
+// Set the magnitude (bits 30-8) : reset magnitude bits and or it with magnitude shifted by 8
+static inline soft_float32 set_magnitude(soft_float32 f, uint32_t magnitude) {
+    return (f & ~(0x7FFFFF << 8)) | ((magnitude & 0x7FFFFF) << 8);
+}
+
+// Function to flip the MSB to change sign (avoid mul by -1)
+static inline soft_float32 soft_float_change_sign(soft_float32 f) {
+    return f ^ 0x80000000;
+}
+
 soft_float32 soft_float_mul(soft_float32 a, soft_float32 b);
+soft_float32 soft_float_mul_two(soft_float32 f);
 soft_float32 soft_float_add(soft_float32 a, soft_float32 b);
 soft_float32 float_to_soft_float32(float f);
 float soft_float32_to_float(soft_float32 f);
-soft_float32 soft_float_change_sign(soft_float32 f);
 int soft_float_less_than(soft_float32 a, soft_float32 b);
 
 
