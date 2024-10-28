@@ -16,18 +16,18 @@
 //! \param  cy    y-coordinate
 //! \param  n_max maximum number of iterations
 //! \return       number of performed iterations at coordinate (cx, cy)
-uint16_t calc_mandelbrot_point_soft(fxpt_6_26 cx, fxpt_6_26 cy, uint16_t n_max) {
-  fxpt_6_26 x = cx;
-  fxpt_6_26 y = cy;
+uint16_t calc_mandelbrot_point_soft(fxpt_7_25 cx, fxpt_7_25 cy, uint16_t n_max) {
+  fxpt_7_25 x = cx;
+  fxpt_7_25 y = cy;
   uint16_t n = 0;
-  fxpt_6_26 xx, yy, two_xy;
+  fxpt_7_25 xx, yy, two_xy;
 
-  fxpt_6_26 threshold = float_to_fxpt(4);
+  fxpt_7_25 threshold = float_to_fxpt(4);
 
   do {
     xx = mul(x, x);
     yy = mul(y, y);
-    two_xy = mul2n(mul(x, y), 1); // Small optimization: . * 2 <=> . << 1
+    two_xy = mul(x, y) << 1; // Small optimization: . * 2 <=> . << 1
 
     x = xx - yy + cx;
     y = two_xy + cy;
@@ -111,12 +111,12 @@ rgb565 iter_to_colour1(uint16_t iter, uint16_t n_max) {
 //! \param  n_max  maximum number of iterations
 void draw_fractal(rgb565 *fbuf, int width, int height,
                   calc_frac_point_p cfp_p, iter_to_colour_p i2c_p,
-                  fxpt_6_26 cx_0, fxpt_6_26 cy_0, fxpt_6_26 delta, uint16_t n_max) {
+                  fxpt_7_25 cx_0, fxpt_7_25 cy_0, fxpt_7_25 delta, uint16_t n_max) {
   rgb565 *pixel = fbuf;
-  fxpt_6_26 cy = cy_0;
+  fxpt_7_25 cy = cy_0;
 
   for (int k = 0; k < height; ++k) {
-    fxpt_6_26 cx = cx_0;
+    fxpt_7_25 cx = cx_0;
     for(int i = 0; i < width; ++i) {
       uint16_t n_iter = (*cfp_p)(cx, cy, n_max);
       rgb565 colour = (*i2c_p)(n_iter, n_max);
@@ -132,79 +132,33 @@ void draw_fractal(rgb565 *fbuf, int width, int height,
 uint32_t SIGN_MASK = 0x80000000;
 uint32_t FRAC_MASK = 0x7fffffff;
 
-/// This function is not being used, it is just here
-/// to demonstrate that the usual + for signed ints works
-uint32_t lt(fxpt_6_26 a, fxpt_6_26 b) {
-    return a < b;
-}
-
-fxpt_6_26 abs(fxpt_6_26 x) {
-    if (x < 0) {
-        return -x;
-    } else {
-        return x;
-    }
-}
-
-fxpt_6_26 mul(fxpt_6_26 a, fxpt_6_26 b) {
-  uint32_t a_abs = abs(a);
-  uint32_t b_abs = abs(b);
+fxpt_7_25 mul(fxpt_7_25 a, fxpt_7_25 b) {
+  int32_t high_a = a >> 16;
+  int32_t low_a = a & 0xFFFF;
+  int32_t high_b = b >> 16;
+  int32_t low_b = b & 0xFFFF;
   
-  uint32_t high_a = a_abs >> 16;
-  uint32_t low_a = a_abs & 0xFFFF;
-  uint32_t high_b = b_abs >> 16;
-  uint32_t low_b = b_abs & 0xFFFF;
-  
-  uint64_t result = ((uint64_t)high_a * high_b) << 32;
-  result += ((uint64_t)high_a * low_b) << 16;
-  result += ((uint64_t)low_a * high_b) << 16;
+  // Adapt to 32-bit
+  int64_t result = ((int64_t)high_a * high_b) << 32;
+  result += ((int64_t)high_a * low_b) << 16;
+  result += ((int64_t)low_a * high_b) << 16;
   result += low_a * low_b;
 
-  result >>= 26; // Shift depends on number of bits before decimal point
-  uint32_t cropped = (uint32_t) result; // Crop the result by casting to int32
+  result >>= 26; // NEEDS TO BE CHANGED IF DIFFERENT Q.X-Y (+1 if less integer part bits)
+  int32_t cropped = (int32_t) result; // Crop the result by casting to int32
 
-  if ((a < 0) ^ (b < 0)) {
-    return -result;
-  } else {
-    return result;
-  }
+  return cropped;
 }
 
-fxpt_6_26 mul2n(fxpt_6_26 a, uint32_t shift) {
-  fxpt_6_26 a_abs = abs(a);                  // Take absolute value
-  uint32_t shifted = * (uint32_t*) &a_abs;   // Unsign integer
-  shifted <<= shift;                         // Shift by n
-  fxpt_6_26 result = * (uint32_t*) &shifted; // Sign integer again
-
-  // Fix sign
-  if (a < 0) {
-    return -result;
-  } else {
-    return result;
-  }
-}
-
-/// This function is not being used, it is just here
-/// to demonstrate that the usual + for signed ints works
-fxpt_6_26 add(fxpt_6_26 a, fxpt_6_26 b) {
-  return a + b;
-}
-
-/// This function is not being used, it is just here
-/// to demonstrate that the usual + for signed ints works
-fxpt_6_26 sub(fxpt_6_26 a, fxpt_6_26 b) {
-  return a - b;
-}
-
-fxpt_6_26 float_to_fxpt(float x) {
-  uint32_t as_int = * (uint32_t*) &x; // Working copy of float as int
+fxpt_7_25 float_to_fxpt(float x) {
+  uint32_t as_int = * (uint32_t*) &x; // Working copy of float as unsigned int
   int32_t exponent = ((as_int >> 23) & 0xff) - 127; // Extract exponent from fp32
   
   uint32_t mantissa = as_int & 0x7FFFFF; // Extract mantissa
   mantissa += 0x800000; // Add missing 1 in front of mantissa
 
   // Shift mantissa according to exponent
-  int32_t shift = 3 + exponent;
+  int32_t shift = 3 + exponent; // NEEDS TO BE CHANGED IF DIFFERENT Q.X-Y (+1 if less integer part bits)
   if (shift > 0) {
     mantissa <<= shift;
   } else if (shift < 0) {
@@ -217,7 +171,7 @@ fxpt_6_26 float_to_fxpt(float x) {
   }
 
   // Interpret it as a signed integer
-  return * (fxpt_6_26*) &mantissa;
+  return * (fxpt_7_25*) &mantissa;
 }
 
 // ==================================================================================
