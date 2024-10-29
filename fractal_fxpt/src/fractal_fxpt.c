@@ -144,7 +144,7 @@ fxpt_7_25 mul(fxpt_7_25 a, fxpt_7_25 b) {
   result += ((int64_t)low_a * high_b) << 16;
   result += low_a * low_b;
 
-  result >>= 26; // NEEDS TO BE CHANGED IF DIFFERENT Q.X-Y (+1 if less integer part bits)
+  result >>= 25; // NEEDS TO BE CHANGED IF DIFFERENT Q.X-Y (Y)
   int32_t cropped = (int32_t) result; // Crop the result by casting to int32
 
   return cropped;
@@ -158,7 +158,7 @@ fxpt_7_25 float_to_fxpt(float x) {
   mantissa += 0x800000; // Add missing 1 in front of mantissa
 
   // Shift mantissa according to exponent
-  int32_t shift = 3 + exponent; // NEEDS TO BE CHANGED IF DIFFERENT Q.X-Y (+1 if less integer part bits)
+  int32_t shift = 2 + exponent; // NEEDS TO BE CHANGED IF DIFFERENT Q.X-Y (+1 if less integer part bits)
   if (shift > 0) {
     mantissa <<= shift;
   } else if (shift < 0) {
