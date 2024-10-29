@@ -133,21 +133,7 @@ uint32_t SIGN_MASK = 0x80000000;
 uint32_t FRAC_MASK = 0x7fffffff;
 
 fxpt_7_25 mul(fxpt_7_25 a, fxpt_7_25 b) {
-  int32_t high_a = a >> 16;
-  int32_t low_a = a & 0xFFFF;
-  int32_t high_b = b >> 16;
-  int32_t low_b = b & 0xFFFF;
-  
-  // Adapt to 32-bit
-  int64_t result = ((int64_t)high_a * high_b) << 32;
-  result += ((int64_t)high_a * low_b) << 16;
-  result += ((int64_t)low_a * high_b) << 16;
-  result += low_a * low_b;
-
-  result >>= 25; // NEEDS TO BE CHANGED IF DIFFERENT Q.X-Y (Y)
-  int32_t cropped = (int32_t) result; // Crop the result by casting to int32
-
-  return cropped;
+  return (int32_t) (( ((int64_t) a) * ((int64_t) b) ) >> 25);
 }
 
 fxpt_7_25 float_to_fxpt(float x) {
