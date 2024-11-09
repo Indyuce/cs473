@@ -37,6 +37,7 @@ int main() {
    vga[3] = swap_u32((unsigned int)&frameBuffer[0]);
    /* Clear screen */
    for (i = 0 ; i < SCREEN_WIDTH*SCREEN_HEIGHT ; i++) frameBuffer[i]=0;
+   // Conversion is done one time and is not be a bottleneck
    soft_float32 cx0 = float_to_soft_float32(CX_0);
    soft_float32 cy0 = float_to_soft_float32(CY_0);
    soft_float32 softdelta = float_to_soft_float32(delta);

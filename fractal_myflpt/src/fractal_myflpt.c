@@ -65,7 +65,8 @@ soft_float32 soft_float_mul(soft_float32 a, soft_float32 b) {
     return result;
 }
 
-// Function to multiply by two
+// Function to multiply by two : multiplication by 2 is equivalent to shift by one
+// and thus to an exponent increment
 soft_float32 soft_float_mul_two(soft_float32 f) {
     uint32_t exponent_f = get_exponent(f);
 
@@ -79,7 +80,7 @@ soft_float32 soft_float_mul_two(soft_float32 f) {
         return set_sign(0x000000FF, get_sign(f));
     }
 
-    // If the exponent is negative and this <= 0 when bias applied, result is 0
+    // If the exponent is negative and <= 0 when bias applied, result is 0
     // Should never happen
     if (exponent_f <= 0) {
         return set_sign(0, get_sign(f));
@@ -227,16 +228,13 @@ float soft_float32_to_float(soft_float32 f) {
 
     // Extract each part of the soft_float
     uint32_t sign = get_sign(f);
-    // printf("Sign : %d \n ", sign);
     uint32_t exponent = get_exponent(f);
-    // printf("Exponent : %x \n", exponent);
     uint32_t magnitude = get_magnitude(f);
-    // printf("Magnitude : %x \n", magnitude);
 
     // Here we only need to change the exponent so that it is 
     // 127 excess instead of 250 excess
     int32_t float_exponent = exponent - 250 + 127;
-    // printf("Float Exponent : %x \n", float_exponent);
+
     // Special cases : +0 -0 +inf -inf
 
     // +inf -inf
@@ -252,7 +250,6 @@ float soft_float32_to_float(soft_float32 f) {
         // Just change the place of exponent and magnitude since 
         // we kept IEEE754 standards
         uint32_t result = ((sign << 31) | ((float_exponent & 0xFF) << 23) | (magnitude & 0x7FFFFF));
-        //print_binary(result);
         // CANT CAST UINT32T TO FLOAT WITHOUT IMPLICIT CONVERSION 
         float fl;
         memcpy(&fl, &result, sizeof(float));
@@ -307,7 +304,6 @@ uint16_t calc_mandelbrot_point_soft(soft_float32 cx, soft_float32 cy, uint16_t n
   uint16_t n = 0;
   //soft_float32 two = 0x000000fb; // 2 in our format is 0x000000fb
   soft_float32 four = 0x000000fc; // 4 in our format is 0x000000fc
-  // We could optimise multiplication by 2 by using shift and exponent modification
   soft_float32 xx, yy, xy, two_xy, xxyy, minusyy, xxplusyy;
   do {
     xx = soft_float_mul(x,x);
@@ -319,9 +315,7 @@ uint16_t calc_mandelbrot_point_soft(soft_float32 cx, soft_float32 cy, uint16_t n
     x = soft_float_add(xxyy, cx);
     y = soft_float_add(two_xy, cy);
     ++n;
-    //printf("n value : %d\n", n);
     xxplusyy = soft_float_add(xx,yy);
-    //printf("xxplusyy : %x \n", xxplusyy);
     
   } while ((soft_float_less_than(xxplusyy, four)) && (n < n_max));
   return n;
