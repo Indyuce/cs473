@@ -25,7 +25,13 @@ struct node_t {
     /** @brief The previous node. */
     node_t* prev;
 
-    /** @brief Node data. */
+    /**
+     * @brief Node data.
+     * 
+     * Moved to the end of the struct to significantly increase the
+     * chance of `id` and `next` being stored in the same cache line,
+     * reducing cache misses.
+    */
     char data[NODE_DATALEN];
 };
 
