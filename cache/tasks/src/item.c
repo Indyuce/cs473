@@ -6,7 +6,7 @@
 
 #define MEM_SIZE 1024
 
-static struct {
+__attribute__((section(".text.global"))) static struct {
     char data[MEM_SIZE];
     size_t next;
 } mem = { .next = 0 };
@@ -62,6 +62,9 @@ item_t* items_find(item_t* items, size_t log2n, unsigned id) {
 void item_init(item_t* item, uint32_t id, const char* data) {
     // YOU CAN MODIFY THIS.
     item->id = id;
+
+    // Allocate array on the heap
+    item->data = alloc(sizeof(char) * ITEM_DATALEN);
 
     if (data != NULL)
         memcpy(item->data, data, ITEM_DATALEN);

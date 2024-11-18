@@ -49,10 +49,23 @@ static void init() {
 static void multiply() {
     // YOU CAN MODIFY THIS.
 
-    for (int j = 0; j < MATRIX_N; ++j) {
-        for (int i = 0; i < MATRIX_N; ++i) {
-            out_vector[i] += matrix[i][j] * in_vector[j];
+    // Row major to avoid cache kills
+    for (int i = 0; i < MATRIX_N; ++i) {
+
+        // using a register to accumulate products does not reduce cache misses
+        // but it does speed up the matrix-vector multiplication, since it
+        // allows the CPU to store the result in a register instead of in the cache
+        //
+        // it can also help if the out_vector is stored at the same position as
+        // one of the input operand arrays, but here it is not the case.
+        elem_t partial_result = 0;
+        
+        for (int j = 0; j < MATRIX_N; ++j) {
+            partial_result += matrix[i][j] * in_vector[j];
         }
+
+        // finally write to out_vector
+        out_vector[i] = partial_result;
     }
 }
 
