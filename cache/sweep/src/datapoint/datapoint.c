@@ -60,9 +60,10 @@ void PARAM_ENTRY() {
     perf_stop();
 
     printf(
-        "Config: %-32s, sizeof(item_t): %2d, dcache misses: %10lld\n",
+        "Config: %-32s, sizeof(item_t): %2d, sizeof(items): %2d, dcache misses: %10lld\n",
         PARAM_DESC,
         sizeof(item_t),
+        sizeof(items),
         perf_read_counter(PERF_COUNTER_0)
     );
 }
