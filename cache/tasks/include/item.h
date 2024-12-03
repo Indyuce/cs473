@@ -19,7 +19,12 @@ struct item_t {
     /** @brief Item ID. */
     unsigned id;
 
-    /** @brief Item data. */
+    /**
+     * @brief Item data.
+     * 
+     * It is now a pointer to an array on the heap, which uses exactly 4 bytes.
+     * This allows to fetch multiple item_t's per cache line, recuding cache misses.
+    */
     char* data;
 };
 

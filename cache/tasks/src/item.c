@@ -63,7 +63,8 @@ void item_init(item_t* item, uint32_t id, const char* data) {
     // YOU CAN MODIFY THIS.
     item->id = id;
 
-    // Allocate array on the heap
+    // Allocate array on the heap. This will reduce the size of the struct
+    // allowing one cache line to include up to 4 structs, reducing cache misses
     item->data = alloc(sizeof(char) * ITEM_DATALEN);
 
     if (data != NULL)
