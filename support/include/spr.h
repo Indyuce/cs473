@@ -42,8 +42,12 @@
 #define SPR_WRITE2(id, extra, r) \
     asm volatile("l.mtspr %[in1],%[in2]," STRINGIZE(id)::[in1] "r"(extra), [in2] "r"(r))
 
+
+// A 16-bit SPR address is made of 5-bit group index (bits 15-11) and 11-bit register index (bits 10-0)
 #define SPR_EEA 0x30
 #define SPR_EPC 0x20
 #define SPR_ESR 0x40
+#define SPR_SR  0x11 // Reg 17
+#define SPR_PICMR 0x4800 // Group 9 reg 0
 
 #endif /* SPR_H_INCLUDED */

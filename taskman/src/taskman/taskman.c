@@ -81,8 +81,35 @@ void* taskman_spawn(coro_fn_t coro_fn, void* arg, size_t stack_sz) {
     // (3) register the coroutine in the tasks array
     // use die_if_not() statements to handle error conditions (like no memory)
 
+    // Important note : the stack allocated in taskman.stack is the entire stack that contains 
+    // the coro_data and the task_data
 
-    IMPLEMENT_ME;
+    // Check arguments
+    die_if_not(coro_fn != NULL);
+    die_if_not(stack_sz > 0);
+    die_if_not(taskman.stack_offset + stack_sz <= TASKMAN_STACK_SIZE);
+    die_if_not(taskman.tasks_count < TASKMAN_NUM_TASKS);
+
+    // (1) Stack space
+    void* stack = &(taskman.stack[taskman.stack_offset]);
+    taskman.stack_offset += stack_sz;
+
+    // (2) Initialize coroutine
+    coro_init(stack, stack_sz, coro_fn, arg);
+
+    // (2) Initialize struct task_data : the task_data struct is stored right after the coro_data struct
+    // Moreover, coro_data return the address right after the coro_data struct in overall coroutine's stack
+    struct task_data* task_data = (struct task_data*) coro_data(stack);
+    task_data->running = 1;
+    task_data->wait.arg = NULL;
+    task_data->wait.handler = NULL;
+
+    // (3) Register the coroutine in the tasks array (the coroutine's stack pointer in the array)
+    taskman.tasks[taskman.tasks_count] = stack;
+    taskman.tasks_count += 1;
+
+    // Return the stack of the newly created coroutine
+    return stack;
 }
 
 void taskman_loop() {
@@ -94,7 +121,48 @@ void taskman_loop() {
 
     while (!taskman.should_stop) {
 
-        IMPLEMENT_ME;
+        // (a) Call the loop functions of all the wait handlers in taskman
+        for(size_t i=0; i < taskman.handlers_count; i++){
+            if(taskman.handlers[i]->loop){
+            taskman.handlers[i]->loop(taskman.handlers[i]);
+            }
+        }
+
+        // (b) Iterate over the tasks
+        for(size_t j=0; j < taskman.tasks_count; j++){
+            // Retrieve stack for each task
+            void* stack = taskman.tasks[j];
+            // Retrieve task_data struct in the stack
+            struct task_data* task_data = (struct task_data*) coro_data(stack);
+
+            // If the task is complete, skip it
+            if(task_data->running == 0){
+                continue;
+            }
+
+            // If there is a wait handler set by taskman_wait() (the task yielded)
+            if(task_data->wait.handler){
+                // If the task is ready to be resumed
+                if(task_data->wait.handler->can_resume(task_data->wait.handler, stack, task_data->wait.arg)){
+                    // Delete the handler (reset it to NULL)
+                    task_data->wait.handler = NULL;
+                    task_data->wait.arg = NULL;
+                } else {
+                    // If the task is not ready wait again
+                    continue;
+                }
+            }
+
+            // Every task that is coming here should be fine to resume
+            // Resume the corresponding coroutine
+            coro_resume(stack);
+
+            // If the coroutine is completed set its task_data.runnning to 0 to indicate that 
+            // this task should not be scheduled anymore
+            if (coro_completed(stack, NULL)){
+                task_data->running = 0;
+            }
+        }
     }
 }
 
@@ -113,16 +181,47 @@ void taskman_register(struct taskman_handler* handler) {
 }
 
 void taskman_wait(struct taskman_handler* handler, void* arg) {
+    // Retrieve the stack of the task
     void* stack = coro_stack();
-    struct task_data* task_data = coro_data(stack);
+
+    // Retrieve the task_data struct from this stack
+    struct task_data* task_data = (struct task_data*) coro_data(stack);
 
     // I suggest that you read `struct taskman_handler` definition.
     // Call handler->on_wait, see if there is a need to yield.
     // Update the wait field of the task_data.
     // Yield if necessary.
 
+    // We need to attach an handler to the task that will set the condition
+    // for which it needs to wait to be scheduled
 
-    IMPLEMENT_ME;
+    task_data->wait.handler = handler;
+    task_data->wait.arg = arg;
+
+    // When we set the handler, this function should call on_wait to initialize some values 
+    // for the handler but we need to check that the handler is not NULL (taskman_yield() is taskman_wait(NULL, NULL))
+
+    // Handler not NULL
+    if(handler){
+        // There is an handler on wait
+        if(handler->on_wait){
+            // Call on wait that returns if the function should yield or not
+            if(handler->on_wait(handler, stack, arg)){
+                coro_yield();
+            }
+            else {
+                // Do nothing
+            }
+        } else {
+            // If there is no on wait yield every time
+            coro_yield();
+        }
+    } else {
+        // If handler is NULL yield every time
+        coro_yield();
+    }
+
+
 }
 
 void taskman_yield() {
