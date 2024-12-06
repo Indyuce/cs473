@@ -81,7 +81,7 @@ static void entry_task() {
     #endif
 
     // SECTION: semaphore test
-    #if 0
+    #if 1
     taskman_semaphore_init(&s, 0, 3);
 
     taskman_spawn(&up_task, (void*)2000, 8ull << 10);
@@ -133,11 +133,10 @@ void part2_1() {
     coro_glinit();
     taskman_glinit();
 
-    //taskman_semaphore_glinit();
+    taskman_semaphore_glinit();
     //taskman_uart_glinit();
     taskman_tick_glinit();
 
-    printf("A o ei zef \n");
     taskman_spawn(&entry_task, NULL, 4ull << 10);
 
     taskman_loop();

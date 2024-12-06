@@ -11,14 +11,41 @@ struct wait_data {
     // what kind of data do we need to put here
     // so that the semaphore works correctly?
 
+    // We need only a pointer to the semaphore struct
+    struct taskman_semaphore* semaphore;
+    int operation; // 0 for down 1 for up
+
 };
 
 static int impl(struct wait_data* wait_data) {
     // implement the semaphore logic here
     // do not forget to check the header file
 
+    // Retrieve semaphore struct from wait_data
+    struct taskman_semaphore* semaphore = wait_data->semaphore;
 
-    IMPLEMENT_ME;
+    // If we catched a down operation
+    if(wait_data->operation == 0){
+        // If the count is not 0 decrement the semaphore
+        if (semaphore->count > 0) {
+            semaphore->count -= 1;
+            // Return 1 which means that task can now resume
+            return 1;
+        }
+        // Else task must wait the next impl() check and that another 
+        // task calls up()
+        return 0;
+    } else { // If we catched an up operation
+        // If we do not exceed the max number of semaphores
+        if (semaphore->count < semaphore->max){
+            semaphore->count += 1;
+            // The task can now resume
+            return 1;
+        }
+        //Else the task must wait another impl() check and that another
+        // task calls down()
+        return 0;
+    }
 }
 
 static int on_wait(struct taskman_handler* handler, void* stack, void* arg) {
@@ -59,12 +86,27 @@ void taskman_semaphore_init(
     semaphore->max = max;
 }
 
+
+// The operations are set in these two functions but the actual increment / decrement is done in impl()
+
 void __no_optimize taskman_semaphore_down(struct taskman_semaphore* semaphore) {
 
-    IMPLEMENT_ME;
+    // We need to pass by argument wait_data so let's reconstruct it thanks to semaphore
+    struct wait_data wait_data;
+    wait_data.semaphore = semaphore;
+    wait_data.operation = 0;
+
+    // Wait until the semaphore is another time > 0
+    taskman_wait(&semaphore_handler, &wait_data);
 }
 
 void __no_optimize taskman_semaphore_up(struct taskman_semaphore* semaphore) {
 
-    IMPLEMENT_ME;
+    // We need to pass by argument wait_data so let's reconstruct it thanks to semaphore
+    struct wait_data wait_data;
+    wait_data.semaphore = semaphore;
+    wait_data.operation = 1;
+
+    // Wait until semaphore is under max
+    taskman_wait(&semaphore_handler, &wait_data);
 }

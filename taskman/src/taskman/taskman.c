@@ -3,6 +3,7 @@
 #include <defs.h>
 #include <locks.h>
 #include <taskman/taskman.h>
+#include <stdio.h>
 
 #include <implement_me.h>
 
@@ -155,12 +156,14 @@ void taskman_loop() {
 
             // Every task that is coming here should be fine to resume
             // Resume the corresponding coroutine
+//            printf("Resuming task %zu\n", j);
             coro_resume(stack);
 
             // If the coroutine is completed set its task_data.runnning to 0 to indicate that 
-            // this task should not be scheduled anymore
+            // this task should not be scheduled anymore and should be removed from taskman array
             if (coro_completed(stack, NULL)){
                 task_data->running = 0;
+//                printf("Task %zu completed\n", j);
             }
         }
     }
@@ -198,6 +201,8 @@ void taskman_wait(struct taskman_handler* handler, void* arg) {
     task_data->wait.handler = handler;
     task_data->wait.arg = arg;
 
+
+
     // When we set the handler, this function should call on_wait to initialize some values 
     // for the handler but we need to check that the handler is not NULL (taskman_yield() is taskman_wait(NULL, NULL))
 
@@ -206,7 +211,9 @@ void taskman_wait(struct taskman_handler* handler, void* arg) {
         // There is an handler on wait
         if(handler->on_wait){
             // Call on wait that returns if the function should yield or not
-            if(handler->on_wait(handler, stack, arg)){
+            // INVERSED I WANT TO CRY PLZ WHY DO THAT
+            // O MEANS YIELD AND 1 MEANS DO NOTHING 
+            if(!handler->on_wait(handler, stack, arg)){
                 coro_yield();
             }
             else {
