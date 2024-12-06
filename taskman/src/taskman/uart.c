@@ -107,8 +107,40 @@ static int can_resume(struct taskman_handler* handler, void* stack, void* arg) {
     // Note: that we need to put a '\0' at the end of the line.
     // Note: do not write the new line character
 
-
-    IMPLEMENT_ME;
+    // Check if the buffer has data
+    if(uart_buffer_nonempty(uart_buffer)){
+        size_t i = 0;
+        // Read the uart_buffer one character by one character until uart buffer becomes
+        // empty or i > buffer_capacity in the wait_data struct (can't copy anymore because buffer is full)
+        // Important : we need to store the \0 at the end of the wait_data struct buffer so
+        // buffer capacity is -1
+        while((i < wait_data->buffer_capacity - 1) && (uart_buffer_nonempty(uart_buffer))){
+            // Retrieve character
+            uint8_t character = uart_buffer_pop(uart_buffer);
+            // Check is this character is newline or not
+            if(character == '\n'){
+                wait_data->buffer[i] = '\0';
+                wait_data->length = i;
+                // When task can be resumed set its stack back to NULL
+                uart_handler.stack = NULL;
+                // When data is copied the task can now resume
+                return 1; 
+            }
+            // Store character in buffer and go to next index
+            wait_data->buffer[i] = character;
+            i++;
+        }
+        // If we go here, it means that buffer of wait_data is not a full capacity (there's at least one space left)
+        // or that the uart buffer is now empty
+        // In both cases we need to end the buffer by '\0' and resume
+        wait_data->buffer[i] = '\0';
+        wait_data->length = i;
+        // When task can be resumed set its stack back to NULL
+        uart_handler.stack = NULL;
+        return 1;
+    }
+    // Here the uart buffer is empty so can't resume until there is new data copied
+    return 0;
 }
 
 static void loop(struct taskman_handler* handler) {
@@ -121,8 +153,19 @@ static void loop(struct taskman_handler* handler) {
     // You can discard data if the buffer is full.
     // see: support/src/uart.c for help.
 
-
-    IMPLEMENT_ME;
+    // The condition for UART to be available is available in uart_wait_rx
+    // Check if uart is available
+    if (!((uart[UART_LINE_STATUS_REGISTER] & UART_RX_AVAILABLE_MASK) == 0)){
+        // Get the character from uart, uart_getc is strange as it returns an int 
+        // but it return *uart, so if I define a uint8_t instead and just do
+        // uint8_t var = *uart I should get the first bits and thus the character ?
+        uint8_t character = (uint8_t) *uart;
+        // Check if the uart buffer is not full : 
+        if (uart_buffer_nonfull(uart_buffer)){
+            // Push the value inside the buffer
+            uart_buffer_put(uart_buffer, character);
+        }
+    }
 }
 
 void taskman_uart_glinit() {

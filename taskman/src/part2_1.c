@@ -76,7 +76,7 @@ static void entry_task() {
     #endif
 
     // SECTION: uart test
-    #if 0
+    #if 1
     taskman_spawn(&uart_task, NULL, 8ull << 10);
     #endif
 
@@ -134,7 +134,7 @@ void part2_1() {
     taskman_glinit();
 
     taskman_semaphore_glinit();
-    //taskman_uart_glinit();
+    taskman_uart_glinit();
     taskman_tick_glinit();
 
     taskman_spawn(&entry_task, NULL, 4ull << 10);
