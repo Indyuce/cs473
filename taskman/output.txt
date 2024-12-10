@@ -1,7 +1,73 @@
 Setting prog. mode
 Download: done
 Jumping to programm
-CPU with id 1 is working!
+Part 1: Coroutines
+func = part1
+func = test_fn, data = 0xaaaabeef
+func = test_fn, i = 0, arg = 0xdeadbeef
+func = part1
+func = f, x = 15
+func = part1
+func = test_fn, f(15 + i) = 75
+func = test_fn, i = 1, arg = 0xdeadbeef
+func = part1
+func = f, x = 16
+func = part1
+func = test_fn, f(15 + i) = 76
+func = test_fn, i = 2, arg = 0xdeadbeef
+func = part1
+func = f, x = 17
+func = part1
+func = test_fn, f(15 + i) = 77
+func = test_fn, i = 3, arg = 0xdeadbeef
+func = part1
+func = f, x = 18
+func = part1
+func = test_fn, f(15 + i) = 78
+done.
+result = 10
+Part 2.1: Single-core Task Manager Implementation
+now executing: part2_1
+hello from the entry_task
+[ t =          0 ms ] entry_task: waiting for all up_task's to finish
+[ t =          0 ms ] periodic_task: period = 1000
+[ t =          0 ms ] periodic_task: period = 3000
+[ t =          0 ms ] periodic_task: period = 9000
+[ t =         37 ms ] uart_task: received line with length = 0 (total = 0): 
+[ t =       1001 ms ] periodic_task: period = 1000
+[ t =       2001 ms ] up_task: complete
+[ t =       2007 ms ] entry_task: done 1
+[ t =       2007 ms ] periodic_task: period = 1000
+[ t =       3001 ms ] periodic_task: period = 3000
+[ t =       3001 ms ] up_task: complete
+[ t =       3015 ms ] entry_task: done 2
+[ t =       3015 ms ] periodic_task: period = 1000
+[ t =       4001 ms ] up_task: complete
+[ t =       4007 ms ] entry_task: done 3
+[ t =       4007 ms ] entry_task: all up_task's are complete
+[ t =       4007 ms ] entry_task: blocking all up_task's for 2 seconds
+[ t =       4033 ms ] periodic_task: period = 1000
+[ t =       5034 ms ] periodic_task: period = 1000
+[ t =       6002 ms ] periodic_task: period = 3000
+[ t =       6010 ms ] up_task: complete
+[ t =       6010 ms ] up_task: complete
+[ t =       6010 ms ] up_task: complete
+[ t =       6035 ms ] periodic_task: period = 1000
+[ t =       7036 ms ] periodic_task: period = 1000
+[ t =       8037 ms ] periodic_task: period = 1000
+[ t =       9001 ms ] periodic_task: period = 9000
+[ t =       9009 ms ] periodic_task: period = 3000
+[ t =       9038 ms ] periodic_task: period = 1000
+[ t =      10039 ms ] periodic_task: period = 1000
+[ t =      11040 ms ] periodic_task: period = 1000
+[ t =      12010 ms ] periodic_task: period = 3000
+[ t =      12041 ms ] periodic_task: period = 1000
+[ t =      13042 ms ] periodic_task: period = 1000
+[ t =      14043 ms ] periodic_task: period = 1000
+[ t =      15011 ms ] periodic_task: period = 3000
+[ t =      15044 ms ] periodic_task: period = 1000
+[ t =      16011 ms ] entry_task: stopping the task manager loop
+CPU with id 1 is working!
 CPU with id 2 is working!
 print_task: arg = task1, cpu id = 1
 print_task: arg = task2, cpu id = 2
@@ -150,393 +216,6 @@ print_task: arg = task3, cpu id = 2
 print_task: arg = task4, cpu id = 1
 print_task: arg = task1, cpu id = 1
 print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
 CS-473 System programming for systems on chip
 Openrisc based virtual Prototype.
 Build version: Tue Nov 12 02:20:53 PM CET 2024
