@@ -92,7 +92,7 @@ int __no_optimize main2() {
 }
 
 int __no_optimize part2_2() {
-    printf("Part 2.2: Dual-core Task Manager Implementation\n");
+    //printf("Part 2.2: Dual-core Task Manager Implementation\n");
 
     init_locks();
 

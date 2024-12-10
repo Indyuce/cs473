@@ -24,26 +24,33 @@ static int impl(struct wait_data* wait_data) {
     // Retrieve semaphore struct from wait_data
     struct taskman_semaphore* semaphore = wait_data->semaphore;
 
-    // If we catched a down operation
-    if(wait_data->operation == 0){
+    // Caught a down operation
+    if(wait_data->operation == 0) {
+
         // If the count is not 0 decrement the semaphore
         if (semaphore->count > 0) {
             semaphore->count -= 1;
-            // Return 1 which means that task can now resume
+            // Return 1, that task can now resume
             return 1;
         }
+
         // Else task must wait the next impl() check and that another 
-        // task calls up()
+        // task calls up(). Task must wait.
         return 0;
-    } else { // If we catched an up operation
+    }
+    
+    // Caught an up operation
+    else {
+
         // If we do not exceed the max number of semaphores
         if (semaphore->count < semaphore->max){
             semaphore->count += 1;
-            // The task can now resume
+            // Returns 1, task can resume
             return 1;
         }
-        //Else the task must wait another impl() check and that another
-        // task calls down()
+
+        // Else the task must wait another impl() check and that another
+        // task calls down(). Task must wait.
         return 0;
     }
 }

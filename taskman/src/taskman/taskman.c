@@ -67,13 +67,21 @@ struct task_data {
 
     /// @brief 1 if running, 0 otherwise.
     int running;
+
+    /// @brief 1 if running on some core, 0 otherwise.
+    /// Prevents multiple cores from running the same task.
+    int running_on_cpu;
 };
 
 void taskman_glinit() {
+    TASKMAN_LOCK();
+
     taskman.handlers_count = 0;
     taskman.stack_offset = 0;
     taskman.tasks_count = 0;
     taskman.should_stop = 0;
+
+    TASKMAN_RELEASE();
 }
 
 void* taskman_spawn(coro_fn_t coro_fn, void* arg, size_t stack_sz) {
@@ -84,6 +92,8 @@ void* taskman_spawn(coro_fn_t coro_fn, void* arg, size_t stack_sz) {
 
     // Important note : the stack allocated in taskman.stack is the entire stack that contains 
     // the coro_data and the task_data
+
+    TASKMAN_LOCK();
 
     // Check arguments
     die_if_not(coro_fn != NULL);
@@ -109,6 +119,8 @@ void* taskman_spawn(coro_fn_t coro_fn, void* arg, size_t stack_sz) {
     taskman.tasks[taskman.tasks_count] = stack;
     taskman.tasks_count += 1;
 
+    TASKMAN_RELEASE();
+
     // Return the stack of the newly created coroutine
     return stack;
 }
@@ -122,15 +134,27 @@ void taskman_loop() {
 
     while (!taskman.should_stop) {
 
+        TASKMAN_LOCK(); // Lock to run task handlers
+
         // (a) Call the loop functions of all the wait handlers in taskman
         for(size_t i=0; i < taskman.handlers_count; i++){
             if(taskman.handlers[i]->loop){
-            taskman.handlers[i]->loop(taskman.handlers[i]);
+                taskman.handlers[i]->loop(taskman.handlers[i]);
             }
         }
 
+        TASKMAN_RELEASE();
+
         // (b) Iterate over the tasks
         for(size_t j=0; j < taskman.tasks_count; j++){
+            TASKMAN_LOCK(); // Lock to potentially resume task
+
+            // Safety check since taskman.tasks_count was accessed out of lock
+            if (j >= taskman.tasks_count) {
+                TASKMAN_RELEASE();
+                break;
+            }
+
             // Retrieve stack for each task
             void* stack = taskman.tasks[j];
             // Retrieve task_data struct in the stack
@@ -138,6 +162,15 @@ void taskman_loop() {
 
             // If the task is complete, skip it
             if(task_data->running == 0){
+                TASKMAN_RELEASE();
+                continue;
+            }
+
+            // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // If some other core is already dealing with this task
+            // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            if(task_data->running_on_cpu != 0){
+                TASKMAN_RELEASE();
                 continue;
             }
 
@@ -150,40 +183,63 @@ void taskman_loop() {
                     task_data->wait.arg = NULL;
                 } else {
                     // If the task is not ready wait again
+                    TASKMAN_RELEASE();
                     continue;
                 }
             }
 
+            // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // Set flag to prevent other cores from running the same motherfucking task
+            // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            task_data->running_on_cpu = 1;
+
+            TASKMAN_RELEASE(); // Release to allow multiple cores to execute tasks in parallel
+
             // Every task that is coming here should be fine to resume
             // Resume the corresponding coroutine
-//            printf("Resuming task %zu\n", j);
             coro_resume(stack);
 
-            // If the coroutine is completed set its task_data.runnning to 0 to indicate that 
+            TASKMAN_LOCK();
+
+            // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // Reset this flag to allow for other cores to pickup on this task
+            // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            task_data->running_on_cpu = 0;
+
+            // If the coroutine is completed, set task_data.runnning to 0 to indicate that 
             // this task should not be scheduled anymore and should be removed from taskman array
             if (coro_completed(stack, NULL)){
                 task_data->running = 0;
-//                printf("Task %zu completed\n", j);
             }
+
+            TASKMAN_RELEASE();
         }
     }
 }
 
 void taskman_stop() {
     TASKMAN_LOCK();
+    
     taskman.should_stop = 1;
+
     TASKMAN_RELEASE();
 }
 
 void taskman_register(struct taskman_handler* handler) {
+    TASKMAN_LOCK();
+
     die_if_not(handler != NULL);
     die_if_not(taskman.handlers_count < TASKMAN_NUM_HANDLERS);
 
     taskman.handlers[taskman.handlers_count] = handler;
     taskman.handlers_count++;
+
+    TASKMAN_RELEASE();
 }
 
 void taskman_wait(struct taskman_handler* handler, void* arg) {
+    TASKMAN_LOCK();
+
     // Retrieve the stack of the task
     void* stack = coro_stack();
 
@@ -197,38 +253,22 @@ void taskman_wait(struct taskman_handler* handler, void* arg) {
 
     // We need to attach an handler to the task that will set the condition
     // for which it needs to wait to be scheduled
-
     task_data->wait.handler = handler;
     task_data->wait.arg = arg;
 
+    int should_yield = !handler || !handler->on_wait || !handler->on_wait(handler, stack, arg);
 
+    TASKMAN_RELEASE();
 
     // When we set the handler, this function should call on_wait to initialize some values 
     // for the handler but we need to check that the handler is not NULL (taskman_yield() is taskman_wait(NULL, NULL))
 
-    // Handler not NULL
-    if(handler){
-        // There is an handler on wait
-        if(handler->on_wait){
-            // Call on wait that returns if the function should yield or not
-            // INVERSED I WANT TO CRY PLZ WHY DO THAT
-            // O MEANS YIELD AND 1 MEANS DO NOTHING 
-            if(!handler->on_wait(handler, stack, arg)){
-                coro_yield();
-            }
-            else {
-                // Do nothing
-            }
-        } else {
-            // If there is no on wait yield every time
-            coro_yield();
-        }
-    } else {
-        // If handler is NULL yield every time
+    // Yield if:
+    // - no wait handler/handler->on_wait specified (simple yield)
+    // - handler->on_wait returns 0 (should wait)
+    if (should_yield) {
         coro_yield();
     }
-
-
 }
 
 void taskman_yield() {
