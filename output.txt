@@ -1,5 +1,28 @@
+CS-473 System programming for systems on chip
+Openrisc based virtual Prototype.
+Build version: Mon Oct 28 11:22:36 AM CET 2024
+
+I am CPU 1 of 2 running at 59.40 MHz.
+
+Known RS232 commands:
+$  Start the program loaded in target
+*p Set programming mode (default)
+*v Set verification mode
+*i Show info on program in target
+*t Toggle target between SDRam (default), soft-Bios and Flash
+*m Perform simple SDRam memcheck
+*s Check SPI-flash chip
+*e Erase SPI-Flash chip
+*f Store program loaded in SDRAM to SPI-Flash
+*c Compare program loaded in SDRAM with SPI-Flash
+*r Run program stored in SPI-Flash
+*q Toggle stack pointer from SDRAM (default) with SPM
+*h This helpscreen
+
+Setting prog. mode
+Download: done
 Jumping to programm
-Part 1: Coroutines
+<0x1b>Part 1: Coroutines
 func = part1
 func = test_fn, data = 0xaaaabeef
 func = test_fn, i = 0, arg = 0xdeadbeef
@@ -33,13 +56,18 @@ hello from the entry_task
 [ t =          0 ms ] periodic_task: period = 9000
 [ t =         37 ms ] uart_task: received line with length = 0 (total = 0): 
 [ t =       1001 ms ] periodic_task: period = 1000
+[ t =       1990 ms ] uart_task: received line with length = 1 (total = 1): t
+[ t =       2001 ms ] uart_task: received line with length = 1 (total = 2): e
 [ t =       2001 ms ] up_task: complete
-[ t =       2007 ms ] entry_task: done 1
-[ t =       2007 ms ] periodic_task: period = 1000
+[ t =       2018 ms ] entry_task: done 1
+[ t =       2018 ms ] periodic_task: period = 1000
+[ t =       2018 ms ] uart_task: received line with length = 1 (total = 3): s
+[ t =       2043 ms ] uart_task: received line with length = 1 (total = 4): t
+[ t =       2054 ms ] uart_task: received line with length = 0 (total = 4): 
 [ t =       3001 ms ] periodic_task: period = 3000
 [ t =       3001 ms ] up_task: complete
 [ t =       3015 ms ] entry_task: done 2
-[ t =       3015 ms ] periodic_task: period = 1000
+[ t =       3021 ms ] periodic_task: period = 1000
 [ t =       4001 ms ] up_task: complete
 [ t =       4007 ms ] entry_task: done 3
 [ t =       4007 ms ] entry_task: all up_task's are complete
@@ -119,127 +147,9 @@ print_task: arg = task3, cpu id = 2
 print_task: arg = task4, cpu id = 1
 print_task: arg = task1, cpu id = 1
 print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
-print_task: arg = task1, cpu id = 1
-print_task: arg = task2, cpu id = 2
-print_task: arg = task3, cpu id = 1
-print_task: arg = task4, cpu id = 2
-print_task: arg = task1, cpu id = 2
-print_task: arg = task2, cpu id = 1
-print_task: arg = task3, cpu id = 2
-print_task: arg = task4, cpu id = 1
 CS-473 System programming for systems on chip
 Openrisc based virtual Prototype.
-Build version: Tue Nov 12 02:20:53 PM CET 2024
+Build version: Mon Oct 28 11:22:36 AM CET 2024
 
 I am CPU 1 of 2 running at 59.40 MHz.
 
