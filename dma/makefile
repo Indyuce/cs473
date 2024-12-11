@@ -43,7 +43,7 @@ MEM = $(addsuffix .mem,$(BUILD)/$(PROJECT))
 
 mem1300: TARGET=__OR1300__
 mem1300: EXT=.or1300
-mem1300: _CFLAGS += -Os -DNDEBUG -D__OR1300__ -D__REALLY_FAST__
+mem1300: _CFLAGS += -Os -DNDEBUG -D__OR1300__
 mem1300: clean $(MEM)
 
 mem1420: clean

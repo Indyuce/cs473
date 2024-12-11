@@ -8,15 +8,13 @@
 #include <dma.h>
 #include <string.h>
 #include "fractal_fxpt.h"
+#include <main.h>
 
-
-//#define __REALLY_FAST__
-
+#define __REALLY_FAST__
 #define SPM_BASE_ADDRESS 0XC0000000
+#define BURST_SIZE 0x000000ff;
 
 rgb565 frameBuffer[SCREEN_WIDTH*SCREEN_HEIGHT];
-
-
 
 int main() {
    volatile unsigned int *vga = (unsigned int *) 0X50000020;
@@ -45,82 +43,81 @@ int main() {
    vga[3] = swap_u32( (unsigned int) &frameBuffer[0] );
    
    /* Clear screen */
-   for (int i = 0 ; i < SCREEN_WIDTH*SCREEN_HEIGHT ; i++) frameBuffer[i]=0;
+   //for (int i = 0 ; i < SCREEN_WIDTH*SCREEN_HEIGHT ; i++) frameBuffer[i]=0;
 
+   #if 0
+   // Define buffer in SPM region, initialize to 0
+   volatile uint32_t* spm_buffer = (volatile uint32_t*) SPM_BASE_ADDRESS;
+   for (int i = 0; i < SCREEN_WIDTH / 2; i++){
+      spm_buffer[i] = 0xafafafaf;
+   }
+   printf("SPM Fuffer = %x ... %x \n", spm_buffer[0], spm_buffer[SCREEN_WIDTH / 2 - 1]);
 
-   /* Define buffer in SPM region */
-   volatile uint32_t* buffer = (volatile uint32_t*) SPM_BASE_ADDRESS;
-   /* Initialize buffer to 0 */
-   for (int i=0; i < SCREEN_WIDTH/2; i++){
-      buffer[i] = 0xaf;
+   volatile uint32_t* DMA_BASE = (volatile uint32_t*) DMA_BASE_ADDRESS;
+  
+   // Specify location of frame buffer in RAM to DMA
+   *(DMA_BASE + MEMORY_ADDRESS_ID) = swap_u32((unsigned int) &frameBuffer[0]);
+   printf("DMA - FB address: %x, expecting %x \n", swap_u32(*(DMA_BASE + MEMORY_ADDRESS_ID)), frameBuffer);
+
+   // Specify location of SPM buffer to DMA
+   *(DMA_BASE + SPM_ADDRESS_ID) = swap_u32((unsigned int) SPM_BASE_ADDRESS);
+   printf("DMA - SPM Address: %x, expecting %x \n", swap_u32(*(DMA_BASE + SPM_ADDRESS_ID)), SPM_BASE_ADDRESS);
+   
+   // Size of the buffer to transfer (in 32-bit words)
+   *(DMA_BASE + TRANSFER_SIZE_ID) = swap_u32(SCREEN_WIDTH / 2);
+   printf("DMA - Transfer size: %d, expecting %d \n", swap_u32(*(DMA_BASE + TRANSFER_SIZE_ID)), SCREEN_WIDTH / 2);
+   
+   // Start DMA transfer + give
+   uint32_t burst_size = BURST_SIZE;
+   *(DMA_BASE + START_STATUS_ID) = swap_u32(DMA_FROM_SPM_TO_MEM | burst_size);
+   printf("Value of Status Register: %x \n", swap_u32(*(DMA_BASE + START_STATUS_ID)));
+
+   // Wait until DMA is done transferring data
+   uint32_t busy_bit = DMA_BUSY_BIT;
+   while(  swap_u32(*(DMA_BASE + START_STATUS_ID)) & busy_bit  ) {
+      printf("DMA busy..\n");
    }
 
-   printf("Value of buffer : %d \n", buffer[128]);
-
-   volatile uint32_t* base_addr = (volatile uint32_t*) DMA_BASE_ADDRESS;
-  
-  // Destination address in memory
-   *(base_addr+MEMORY_ADDRESS_ID) =  swap_u32((unsigned int) &frameBuffer[0]);
-   printf("Value of mem address id %x \n", swap_u32(*(base_addr+MEMORY_ADDRESS_ID)));
-   printf("Value of framBuffer address %x \n", &frameBuffer[0]);
-  // Source address in SPM
-   *(base_addr+SPM_ADDRESS_ID) =  swap_u32(SPM_BASE_ADDRESS);
-   printf("Value of spm address id %x \n", swap_u32(*(base_addr+SPM_ADDRESS_ID)));
-   printf("Value of SPM adress %x \n", SPM_BASE_ADDRESS);
-  // Size of the buffer to transfer
-   *(base_addr+TRANSFER_SIZE_ID) = swap_u32(SCREEN_WIDTH/2);
-  // Size of burst
-   *(base_addr+START_STATUS_ID) = swap_u32(0x000000ff);
-  // Start DMA transfer
-   *(base_addr+START_STATUS_ID) = swap_u32(DMA_FROM_SPM_TO_MEM || 0x000000ff);
-   printf("Value of register %x \n", swap_u32(*(base_addr+START_STATUS_ID)));
-
-   while((swap_u32(*(base_addr+START_STATUS_ID))) == DMA_BUSY_BIT);
-
-   printf("Value in frameBuffer is : %x \n", frameBuffer[0]);
+   printf("MEM Buffer = %x ... %x \n", frameBuffer[0], frameBuffer[SCREEN_WIDTH]);
+   #endif
 
    perf_start();
+
+
 #ifdef __REALLY_FAST__
+
+   uint32_t burst_size = BURST_SIZE;
+   uint32_t busy_bit = DMA_BUSY_BIT;
    int color = (2<<16) | N_MAX;
    asm volatile ("l.nios_crc r0,%[in1],%[in2],0x21"::[in1]"r"(color),[in2]"r"(delta));
-   //pixel = (uint32_t *)frameBuffer;
    fxpt_4_28 cy = CY_0;
    for (int k = 0 ; k < SCREEN_HEIGHT ; k++) {
-     pixel = (uint32_t*) buffer;
-     fxpt_4_28 cx = CX_0;
-     for (int i = 0 ; i < SCREEN_WIDTH ; i+=2) {
-       asm volatile ("l.nios_rrr %[out1],%[in1],%[in2],0x20":[out1]"=r"(color):[in1]"r"(cx),[in2]"r"(cy));
-       *(pixel++) = color;
-       cx += delta << 1;
-     }
+      fxpt_4_28 cx = CX_0;
 
-     // DMA transfer from SPM to frameBuffer
-     volatile uint32_t* dma_address = (uint32_t*) DMA_BASE_ADDRESS;
-     while(*(dma_address+START_STATUS_ID) & DMA_BUSY_BIT);
-     // Memory address of destination
-     *(dma_address+MEMORY_ADDRESS_ID) = (uint32_t) frameBuffer+k*SCREEN_WIDTH/2;
-   //   printf("Destination mem : %x \n", (uint32_t) frameBuffer+k*SCREEN_WIDTH/2);
-     // SPM start address
-     *(dma_address+SPM_ADDRESS_ID) = pixel;
-   //   printf("SOurce spm : %x \n", buffer);
-     // Buffer size
-     *(dma_address+TRANSFER_SIZE_ID) = SCREEN_WIDTH/2;
-   //   printf("Size : %x \n", SCREEN_WIDTH/2);
-     // Burst size
-     *(dma_address+START_STATUS_ID) = 0xff | DMA_FROM_MEM_TO_SPM; // 255
-   //   printf("Burst : %x \n", 0xff);
-     // Start DMA
-     //*(dma_address+START_STATUS_ID) = DMA_FROM_SPM_TO_MEM;
+      volatile uint32_t* spm_buffer = (volatile uint32_t*) SPM_BASE_ADDRESS;
+      volatile uint32_t* DMA_BASE = (volatile uint32_t*) DMA_BASE_ADDRESS;
 
-     // Wait until DMA is done
-      // printf("Ma bite %x \n", *(dma_address+START_STATUS_ID));
-     while((*(dma_address+START_STATUS_ID) | DMA_BUSY_BIT) == DMA_BUSY_BIT){
-     }
-     cy += delta;
+      for (int i = 0 ; i < SCREEN_WIDTH ; i+=2) {
+         asm volatile ("l.nios_rrr %[out1],%[in1],%[in2],0x20":[out1]"=r"(color):[in1]"r"(cx),[in2]"r"(cy));
+         *(spm_buffer++) = color;
+         cx += delta << 1;
+      }
+
+      *(DMA_BASE + MEMORY_ADDRESS_ID) = swap_u32((unsigned int) (frameBuffer + k * SCREEN_WIDTH)); // memory loc
+      *(DMA_BASE + SPM_ADDRESS_ID) = swap_u32((unsigned int) SPM_BASE_ADDRESS); // spm loc
+      *(DMA_BASE + TRANSFER_SIZE_ID) = swap_u32(SCREEN_WIDTH / 2); // size of buffer
+      *(DMA_BASE + START_STATUS_ID) = swap_u32(DMA_FROM_SPM_TO_MEM | burst_size); // start transfer
+
+      while(  swap_u32(*(DMA_BASE + START_STATUS_ID)) & busy_bit  ) {
+         printf("DMA busy..\n");
+      }
+
+      cy += delta;
    }
 #else
    draw_fractal(frameBuffer,SCREEN_WIDTH,SCREEN_HEIGHT,&calc_mandelbrot_point_soft, &iter_to_colour,CX_0,CY_0,delta,N_MAX);
 #endif
+
    dcache_flush();
    asm volatile ("l.lwz %[out1],0(%[in1])":[out1]"=r"(pixel):[in1]"r"(frameBuffer)); // dummy instruction to wait for the flush to be finished
    perf_stop();
